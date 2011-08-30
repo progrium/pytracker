@@ -106,6 +106,27 @@ class Tracker(object):
   def GetReleaseStoriesXml(self):
     return self._ApiQueryStories('type:release')
 
+  def GetIterationStories(self, iteration=None, offset=None, limit=None):
+    iteration = ('/%s' % iteration) if iteration else ''
+    params = []
+    if offset:
+      params.append('offset=%s' % urllib.quote_plus(str(offset)))
+    if limit:
+      params.append('limit=%s' % urllib.quote_plus(str(limit)))
+      
+    response = self._Api('iterations%s?%s' % (iteration, '&'.join(params)), 'GET')
+    
+    # Hack: throw an exception if we didn't get valid XML.
+    xml.parsers.expat.ParserCreate('utf-8').Parse(response, True)
+    
+    parsed = xml.dom.minidom.parseString(response)
+    els = parsed.getElementsByTagName('story')
+    lst = []
+    for el in els:
+      lst.append(Story.FromXml(el.toxml()))
+    return lst
+    
+
   def GetStories(self, filt=None):
     """Fetch all Stories that satisfy the filter.
 
